@@ -30,10 +30,7 @@ const CONST = new Const()
 admin.initializeApp(functions.config().firebase);
 const db = admin.firestore();
 
-app.get(path.testPath, (req, res) => {
-    res.send('Calentando para la pelea');
-})
-
+// Upload image
 app.post(path.upload, async (req, res) =>{
     try{
 
