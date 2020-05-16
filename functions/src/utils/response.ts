@@ -26,7 +26,7 @@ export class Response {
                 data
             }
         }
-        return res.send(this.CODE_RESPONSE.SUCCESS_HTTP, response)
+        return res.status(this.CODE_RESPONSE.SUCCESS_HTTP).send(response)
     }
 
     /**

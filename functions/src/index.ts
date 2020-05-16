@@ -14,8 +14,7 @@ import { Const } from './utils/const';
 const app = express();
 
 // Automatically allow cross-origin requests
-app.use(cors({ origin: true }));
-app.options('*',cors());
+app.use(cors({ origin: '*' }));
 app.use(bodyParser.json())
 
 
@@ -64,6 +63,9 @@ app.post(path.upload, async (req, res) =>{
 
 // get image by ID
 app.get('/images/:id', async (req, res) =>{
+    // cors(req, res, () => {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
+    res.setHeader('Content-Type', 'application/json');
     try{
 
     const imgId = req.params.id;
@@ -82,40 +84,81 @@ app.get('/images/:id', async (req, res) =>{
             data: imgObj.data()
         }
     }
-    
+    res.setHeader('Content-Type', 'application/json');
     return response.success(res, bodyResponse)
 
-}catch(error){
-    response.serverError(res, error)
-}
-})
+    }catch(error){
+        response.serverError(res, error)
+    }
+
+    // )}
+});
 
 // list images by ids
 app.get('/images', async (req, res) => {
+    console.log('Request to retrieve list of images has been received...');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+
+    const page = parseInt(req.query.page.toString());
+    const limit = parseInt(req.query.limit.toString());
+
+    const startIndex = (page-1) * limit;
+    const endIndex = page * limit;
+
     try {
-  
-      const imageQuerySnapshot = await db.collection('images').get();
+      const imageQuerySnapshot = await db.collection('images')
+      .orderBy('timestamp',"desc")
+      .get();
       const images:any[] = [];
       imageQuerySnapshot.forEach(
           (doc) => {
+            const date = new Date(doc.data().timestamp * 1000);
+            const offset = (new Date().getTimezoneOffset() / 60) * -1;
+            console.log(offset)
+            const imageName = new Date(date.getTime() + offset).toDateString();
+            console.log(imageName);
               images.push({
                   id: doc.id,
+                  image_name: imageName,
+                  image_url: doc.data().image,
                   timestamp: doc.data().timestamp
               });
           }
       );
 
-      const bodyResponse = {
+      let next = {};
+      let previous = {};
+      if (endIndex < images.length){
+        next = {
+            page: page + 1,
+            limit: limit
+          }
+      }
+
+      if (startIndex > 0){
+        previous = {
+            page: page -1,
+            limit: limit
+        }
+      }
+
+    //   console.log('Total queried images');
+    //   console.log(images);
+      const bodyResponse = {    
         method: 'GET',
         type: 'data',
         body:{
+            next,
+            previous,
             images
         }
     }
-    
+    res.setHeader('Content-Type', 'application/json');
     return response.success(res, bodyResponse)
   
     } catch(error){
+        console.log('El servicio fallo con error desconocido');
         response.serverError(res, error)
     }
   
